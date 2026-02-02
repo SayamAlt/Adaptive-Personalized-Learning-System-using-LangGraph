@@ -117,11 +117,9 @@ def generate_openai_image(prompt: str, context: str = "") -> Optional[str]:
         context: Brief context/topic for meaningful filename (e.g., "transformer_architecture")
     """
     if not OPENAI_API_KEY:
-        print("ERROR: OPENAI_API_KEY not found. Skipping image generation.")
+        print("OPENAI_API_KEY not found. Skipping image generation.")
         return None
-    
-    print(f"DEBUG [OpenAI]: Generating image with gpt-image-1...")
-    
+        
     try:
         from openai import OpenAI
         import base64
@@ -145,9 +143,7 @@ def generate_openai_image(prompt: str, context: str = "") -> Optional[str]:
             quality="medium",
             n=1
         )
-        
-        print(f"DEBUG [OpenAI]: Image generated successfully")
-        
+                
         # Check response format
         image_data = response.data[0]
         
@@ -167,32 +163,25 @@ def generate_openai_image(prompt: str, context: str = "") -> Optional[str]:
         
         # Handle base64 response (when URL is None)
         if hasattr(image_data, 'b64_json') and image_data.b64_json:
-            print(f"DEBUG [OpenAI]: Processing base64 image data...")
             image_bytes = base64.b64decode(image_data.b64_json)
             with open(local_path, "wb") as f:
                 f.write(image_bytes)
-            print(f"DEBUG [OpenAI]: Image saved to {local_path}")
             return str(local_path)
         
         # Handle URL response
         elif hasattr(image_data, 'url') and image_data.url:
-            print(f"DEBUG [OpenAI]: Downloading image from URL...")
             image_response = requests.get(image_data.url, timeout=30)
             
             if image_response.status_code == 200:
                 with open(local_path, "wb") as f:
                     f.write(image_response.content)
-                print(f"DEBUG [OpenAI]: Image saved to {local_path}")
                 return str(local_path)
             else:
-                print(f"ERROR [OpenAI]: Failed to download image, status code: {image_response.status_code}")
                 return None
         else:
-            print(f"ERROR [OpenAI]: Response contains neither URL nor base64 data")
             return None
         
     except Exception as e:
-        print(f"ERROR [OpenAI]: Exception occurred: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
     
@@ -597,7 +586,6 @@ def generate_lesson_content(state: LearningState) -> Dict:
     arxiv_hits = []
     try:
         arxiv_query = user_profile["topic"]
-        print(f"DEBUG [Arxiv]: Searching for '{arxiv_query}'...")
         
         search = arxiv.Search(
             query=arxiv_query,
@@ -612,15 +600,12 @@ def generate_lesson_content(state: LearningState) -> Dict:
                 "url": paper.entry_id,
                 "link": paper.entry_id
             })
-        print(f"DEBUG [Arxiv]: Found {len(arxiv_hits)} papers.")
 
     except Exception as e:
-        print(f"ERROR [Arxiv]: Failed to load papers: {e}")
         import traceback
         traceback.print_exc()
         arxiv_hits = []
 
-        
     # Robust Google Scholar Search
     try:
         gscholar_hits = google_scholar_search_tool.run(search_query) if google_scholar_search_tool else []
@@ -663,9 +648,7 @@ def generate_lesson_content(state: LearningState) -> Dict:
         snippets="\n".join(combined_snippets)
     )
     
-    print(f"DEBUG [Lesson]: Generating content for {user_profile['topic']}...")
     lesson_content = llm.invoke(formatted_prompt).content
-    print(f"DEBUG [Lesson]: Content generated ({len(lesson_content)} chars).")
     
     # Append Citations
     citations_md = build_citations(tavily_hits, arxiv_hits, gscholar_hits, youtube_hits)
@@ -692,7 +675,6 @@ def generate_visual_aids(state: LearningState) -> Dict:
         original_url = match.group(2)
         
         if openai_count < 3:
-            print(f"DEBUG [Visuals]: Generating OpenAI image for '{alt_text}'...")
             # Pass alt_text as context for meaningful filename
             local_path = generate_openai_image(
                 prompt=f"Educational illustration of {alt_text}, professional digital art, high resolution, {topic}",
@@ -706,11 +688,9 @@ def generate_visual_aids(state: LearningState) -> Dict:
     lesson_content = re.sub(pattern, openai_replace, lesson_content)
     
     # 2. Localize any remaining external images
-    print("DEBUG [Visuals]: Localizing external images...")
     lesson_content = process_lesson_images(lesson_content)
     
     state.teaching_plan.lessons[0] = lesson_content
-    print(f"DEBUG [Visuals]: Finished. Generated {openai_count} OpenAI images.")
     
     return {"teaching_plan": state.teaching_plan}
 
@@ -736,11 +716,9 @@ def generate_examples_exercises(state: LearningState) -> Dict:
         )
     ])
     
-    print("DEBUG [Exercises]: Generating examples and exercises...")
     learning_exercises: LearningExercises = llm_with_learning_exercises.invoke(exercises_prompt.format(lesson=lesson_content))
     
     if not learning_exercises or (not learning_exercises.examples and not learning_exercises.exercises):
-        print("DEBUG [Exercises]: ERROR - LLM returned empty exercises. Retrying with explicit reminder...")
         learning_exercises = llm_with_learning_exercises.invoke(exercises_prompt.format(lesson=lesson_content) + "\nREMINDER: Examples and Exercises lists MUST NOT be empty.")
 
     # Process examples and exercises to download images locally
@@ -762,7 +740,6 @@ def generate_examples_exercises(state: LearningState) -> Dict:
     
     state.teaching_plan.examples = learning_exercises.examples
     state.teaching_plan.exercises = learning_exercises.exercises
-    print(f"DEBUG [Exercises]: Finished. Examples: {len(learning_exercises.examples)}, Exercises: {len(learning_exercises.exercises)}")
     
     return {"teaching_plan": state.teaching_plan}
 
