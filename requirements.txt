@@ -1,0 +1,13 @@
+langgraph
+python-dotenv
+arxiv
+requests
+langchain-openai
+langchain-community
+langchain-tavily
+langchain-core
+tavily-python
+youtube_search
+pydantic
+langchain
+streamlit
