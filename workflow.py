@@ -13,14 +13,25 @@ from pathlib import Path
 from langchain.tools import tool
 from typing import Optional, Literal, List, Dict
 from datetime import datetime
+import streamlit as st
 
 # Load environment variables
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-ELEVEN_LABS_API_KEY = os.getenv("ELEVEN_LABS_API_KEY")
-SERP_API_KEY = os.getenv("SERP_API_KEY")
+if "OPENAI_API_KEY" in st.secrets['secrets']:
+    OPENAI_API_KEY = st.secrets['secrets']['OPENAI_API_KEY']
+else:
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+if "TAVILY_API_KEY" in st.secrets['secrets']:
+    TAVILY_API_KEY = st.secrets['secrets']['TAVILY_API_KEY']
+else:
+    TAVILY_API_KEY = os.environ.get('TAVILY_API_KEY')
+
+if "SERP_API_KEY" in st.secrets['secrets']:
+    SERP_API_KEY = st.secrets['secrets']['SERP_API_KEY']
+else:
+    SERP_API_KEY = os.environ.get('SERP_API_KEY')
 
 # Initialize cache
 cache = InMemoryCache()
@@ -30,7 +41,7 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.6, api_key=OPENAI_API_KEY, c
 
 # Tavily Search Tool
 def get_tavily_tool():
-    key = os.getenv("TAVILY_API_KEY")
+    key = st.secrets['secrets']['TAVILY_API_KEY']
     if not key: return None
     try:
         return TavilySearchResults(api_key=key, max_results=2)
@@ -39,7 +50,7 @@ def get_tavily_tool():
 
 # Google Scholar Search Tool
 def get_google_scholar_tool():
-    key = os.getenv("SERPAPI_API_KEY") or os.getenv("SERP_API_KEY")
+    key = st.secrets['secrets']['SERP_API_KEY']
     if not key: return None
     try:
         from langchain_community.utilities.google_scholar import GoogleScholarAPIWrapper
